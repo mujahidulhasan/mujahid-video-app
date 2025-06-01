@@ -12,6 +12,6 @@ services:
       name: downloads
       mountPath: /opt/render/project/src/downloads
       sizeGB: 1 # Adjust size as needed, e.g., 1 GB, 5 GB, etc.
-    apt:
+    apt: # <--- THIS IS THE SECTION FOR SYSTEM PACKAGES LIKE FFmpeg
       packages:
-        - ffmpeg
+        - ffmpeg # <--- THIS LINE TELLS RENDER TO INSTALL FFmpeg
