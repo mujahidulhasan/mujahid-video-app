@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
 import yt_dlp
-import os # This import is already here, no change needed for this line
+import os
 import threading
 import uuid
 import re
-# import mimetypes # These imports were commented out in your provided code
-# import requests # These imports were commented out in your provided code
+import requests # <--- ADDED THIS IMPORT
+import mimetypes # <--- ADDED THIS IMPORT
 
 app = Flask(__name__)
 CORS(app)
@@ -353,6 +353,81 @@ def download_timestamped_video():
             try: os.remove(filepath)
             except OSError: pass
         return jsonify({"error": f"An unexpected error occurred during segment download: {str(e)}"}), 500
+
+# --- ADDED download_thumbnail ROUTE HERE ---
+@app.route('/download_thumbnail', methods=['POST'])
+def download_thumbnail():
+    data = request.get_json()
+    thumbnail_url = data.get('thumbnail_url')
+    video_title = data.get('video_title', 'thumbnail')
+
+    if not thumbnail_url:
+        return jsonify({"error": "No thumbnail URL provided"}), 400
+    
+    # --- START OF PROXY ADDITION FOR download_thumbnail ---
+    proxy_url = os.environ.get('PROXY_URL') 
+    # The 'requests' library (used here) automatically uses HTTP_PROXY/HTTPS_PROXY environment variables.
+    # So, if you set PROXY_URL, and it points to an HTTP/HTTPS proxy, 'requests' will use it implicitly.
+    # We don't need explicit 'if proxy_url: ydl_opts['proxy'] = proxy_url' here like with yt-dlp.
+    # However, for consistency and clarity, we can add a debug print if needed.
+    if proxy_url:
+        print(f"DEBUG: Using proxy for download_thumbnail via requests: {proxy_url}")
+    # --- END OF PROXY ADDITION FOR download_thumbnail ---
+
+    sanitized_title = re.sub(r'[^\w\s-]', '', video_title).strip().replace(' ', '_')
+    if not sanitized_title:
+        sanitized_title = "thumbnail"
+
+    unique_id = uuid.uuid4().hex[:8]
+    file_ext = thumbnail_url.split('.')[-1].split('?')[0] 
+    if not file_ext or len(file_ext) > 5:
+        file_ext = 'jpg' 
+
+    download_filename = f"{sanitized_title}_HD_Thumbnail_{unique_id}.{file_ext}"
+    filepath = os.path.join(DOWNLOAD_DIR, download_filename)
+
+    try:
+        response = requests.get(thumbnail_url, stream=True)
+        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+
+        with open(filepath, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        if not os.path.exists(filepath):
+            raise Exception("Thumbnail file not downloaded on server.")
+
+        mimetype = mimetypes.guess_type(filepath)[0] or 'application/octet-stream'
+
+        response = send_file(filepath, as_attachment=True, download_name=download_filename, mimetype=mimetype)
+
+        def cleanup_file_delayed(path_to_clean):
+            if os.path.exists(path_to_clean):
+                try:
+                    os.remove(path_to_clean)
+                    print(f"Cleaned up: {path_to_clean}")
+                except OSError as e:
+                    print(f"Error cleaning up file {path_to_clean}: {e}")
+
+        threading.Timer(10, cleanup_file_delayed, args=[filepath]).start()
+
+        return response
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading thumbnail from URL: {e}")
+        if os.path.exists(filepath):
+            try: os.remove(filepath)
+            except OSError: pass
+        return jsonify({"error": f"Failed to fetch thumbnail from URL: {str(e)}"}), 500
+    except Exception as e:
+        print(f"General thumbnail download error: {e}")
+        if os.path.exists(filepath):
+            try: os.remove(filepath)
+            except OSError: pass
+        return jsonify({"error": f"An unexpected error occurred during thumbnail download: {str(e)}"}), 500
+
+# --- END OF download_thumbnail ROUTE ---
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
