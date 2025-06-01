@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const API_BASE_URL = ''; // This is the correct change
 
 // Get DOM elements
 const videoUrlInput = document.getElementById('videoUrl');
