@@ -75,9 +75,9 @@ def get_video_info():
         # --- END ADDED ---
 
         proxy_url = os.environ.get('PROXY_URL') 
-        if proxy_url:
-            ydl_opts['proxy'] = proxy_url
-            print(f"DEBUG: Using proxy for get_video_info: {proxy_url}") 
+        # if proxy_url: # Comment this line out
+            #     ydl_opts['proxy'] = proxy_url # Comment this line out
+            #     print(f"DEBUG: Using proxy for get_video_info: {proxy_url}") # Comment this line out 
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=False)
