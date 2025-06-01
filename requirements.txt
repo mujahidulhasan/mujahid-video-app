@@ -1,4 +1,5 @@
 Flask==2.3.2
 Flask-Cors==3.0.10
-yt-dlp # <--- CHANGE THIS LINE (remove the ==2024.04.09)
+yt-dlp
 gunicorn==20.1.0
+requests  # <--- ADD THIS LINE
