@@ -1,0 +1,472 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+:root {
+    --primary-color: #e53935; /* YouTube Red */
+    --secondary-color: #3f51b5; /* A complementary blue */
+    --background-color: #f0f2f5;
+    --card-background: #ffffff;
+    --text-color: #333333;
+    --light-text-color: #666666;
+    --border-color: #e0e0e0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --error-color: #d32f2f;
+    --success-color: #4caf50;
+    --hover-background-light: #f5f5f5; /* For dropdown options */
+}
+
+/* Night Mode Variables */
+html[data-theme='dark'] {
+    --primary-color: #ff4d4f; /* Brighter red for dark theme */
+    --secondary-color: #6a8cff; /* Brighter blue for dark theme */
+    --background-color: #1a1a1a;
+    --card-background: #2c2c2c;
+    --text-color: #f0f0f0;
+    --light-text-color: #b0b0b0;
+    --border-color: #444444;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --hover-background-light: #3a3a3a;
+}
+
+
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.container {
+    background-color: var(--card-background);
+    border-radius: 12px;
+    box-shadow: 0 6px 20px var(--shadow-color);
+    padding: 30px;
+    width: 100%;
+    max-width: 800px;
+    text-align: center;
+    animation: fadeIn 0.8s ease-out;
+    margin-top: 50px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 2.2em;
+    transition: color 0.3s ease;
+}
+
+.tagline {
+    color: var(--light-text-color);
+    margin-bottom: 30px;
+    font-size: 1.1em;
+    transition: color 0.3s ease;
+}
+
+.input-section {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.input-section input[type="text"] {
+    flex-grow: 1;
+    padding: 12px 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1em;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+    min-width: 250px;
+}
+
+.input-section input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.input-section button,
+.thumbnail-download-option button,
+.timestamp-section button,
+.theme-toggle-button,
+.format-toggle-btn {
+    padding: 12px 25px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.input-section button:hover,
+.thumbnail-download-option button:hover,
+.timestamp-section button:hover,
+.theme-toggle-button:hover,
+.format-toggle-btn:hover {
+    background-color: #d32f2f;
+    transform: translateY(-2px);
+}
+
+.input-section button:disabled,
+.thumbnail-download-option button:disabled,
+.timestamp-section button:disabled,
+.theme-toggle-button:disabled,
+.format-toggle-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+    display: none;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.status-message {
+    margin-top: 15px;
+    font-size: 1em;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.status-message.error {
+    color: var(--error-color);
+}
+
+.status-message.success {
+    color: var(--success-color);
+}
+
+.video-info-section {
+    display: none;
+    text-align: left;
+    margin-top: 30px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 30px;
+    transition: border-color 0.3s ease;
+}
+
+.video-info-section img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px var(--shadow-color);
+    transition: box-shadow 0.3s ease;
+}
+
+.video-info-section .details {
+    margin-bottom: 25px;
+}
+
+.video-info-section h2 {
+    font-size: 1.8em;
+    color: var(--text-color);
+    margin-top: 0;
+    margin-bottom: 10px;
+    line-height: 1.3;
+    transition: color 0.3s ease;
+}
+
+.video-info-section p {
+    margin: 5px 0;
+    color: var(--light-text-color);
+    font-size: 1em;
+    transition: color 0.3s ease;
+}
+
+.video-info-section p strong {
+    color: var(--text-color);
+    transition: color 0.3s ease;
+}
+
+.thumbnail-download-option {
+    margin-bottom: 25px;
+    text-align: center;
+}
+.thumbnail-download-option button {
+    background-color: #4CAF50;
+}
+.thumbnail-download-option button:hover {
+    background-color: #45a049;
+}
+
+
+.quality-selection-group {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.quality-selection {
+    flex: 1;
+    min-width: 280px;
+    border: 1px dashed var(--border-color);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    transition: border-color 0.3s ease;
+}
+
+.quality-selection h3 {
+    font-size: 1.2em;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    transition: color 0.3s ease;
+}
+
+.quality-dropdown {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1em;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13.6-6.4H18.8c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 10px top 50%;
+    background-size: 12px;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+/* Styling for dropdown options (limited cross-browser support) */
+.quality-dropdown option {
+    background-color: var(--card-background);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+.quality-dropdown option:hover {
+    background-color: var(--hover-background-light); /* Highlight on hover */
+}
+
+
+.quality-dropdown:disabled {
+    background-color: #e9e9e9;
+    cursor: not-allowed;
+    color: #999;
+}
+html[data-theme='dark'] .quality-dropdown:disabled {
+    background-color: #3a3a3a;
+    color: #777;
+}
+
+#downloadBtn {
+    margin-top: 25px;
+    width: 100%;
+    max-width: 300px;
+    padding: 15px;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+/* Progress bar styling (new) */
+.progress-container {
+    width: 80%;
+    background-color: var(--border-color);
+    border-radius: 5px;
+    margin: 20px auto;
+    height: 10px;
+    overflow: hidden;
+    display: none; /* Hidden by default */
+    transition: background-color 0.3s ease;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: var(--primary-color);
+    border-radius: 5px;
+    transition: width 0.3s ease; /* Smooth animation for width change */
+}
+
+
+.timestamp-section {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px dashed var(--border-color);
+    text-align: center;
+    transition: border-color 0.3s ease;
+}
+
+.timestamp-section h3 {
+    font-size: 1.4em;
+    color: var(--secondary-color);
+    margin-bottom: 10px;
+    transition: color 0.3s ease;
+}
+
+.timestamp-info {
+    font-size: 0.9em;
+    color: var(--light-text-color);
+    margin-bottom: 20px;
+    transition: color 0.3s ease;
+}
+
+.timestamp-inputs {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 10px; /* Reduced margin to make space for toggle buttons */
+    flex-wrap: wrap;
+}
+
+.timestamp-inputs input[type="text"] {
+    width: 180px;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1em;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+.timestamp-inputs input[type="text"]:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+}
+
+.timestamp-format-toggles {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.timestamp-format-toggles .format-toggle-btn {
+    background-color: var(--light-text-color); /* Different color for format buttons */
+    padding: 8px 15px;
+    font-size: 0.9em;
+    border-radius: 5px;
+}
+.timestamp-format-toggles .format-toggle-btn.active {
+    background-color: var(--secondary-color);
+    color: white;
+}
+.timestamp-format-toggles .format-toggle-btn:hover {
+    background-color: var(--secondary-color);
+    transform: none; /* No transform on hover for these small buttons */
+}
+
+
+.timestamp-section button {
+    background-color: var(--secondary-color);
+}
+.timestamp-section button:hover {
+    background-color: #303f9f;
+}
+
+.download-info {
+    margin-top: 25px;
+    font-size: 0.9em;
+    color: var(--light-text-color);
+    transition: color 0.3s ease;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    z-index: 10;
+}
+
+.theme-toggle-button:hover {
+    background-color: #303f9f;
+}
+
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+        margin-top: 20px;
+    }
+    h1 {
+        font-size: 1.8em;
+    }
+    .tagline {
+        font-size: 1em;
+    }
+    .input-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .input-section input[type="text"],
+    .input-section button {
+        width: 100%;
+        min-width: unset;
+    }
+    .video-info-section img {
+        margin-bottom: 15px;
+    }
+    .video-info-section h2 {
+        font-size: 1.5em;
+    }
+    .quality-selection-group {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .quality-selection {
+        min-width: unset;
+        width: 100%;
+    }
+    .timestamp-inputs {
+        flex-direction: column;
+        align-items: center;
+    }
+    .timestamp-inputs input[type="text"] {
+        width: 100%;
+        max-width: 250px;
+    }
+    #downloadBtn {
+        max-width: 100%;
+    }
+    .theme-toggle-button {
+        position: static;
+        margin-bottom: 20px;
+        width: 100%;
+    }
+}

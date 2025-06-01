@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastVid: YouTube Video Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22.54 6.42a2.78 2.78 0 0 0-1.94-1.94C18.88 4 12 4 12 4s-6.88 0-8.6.48a2.78 2.78 0 0 0-1.94 1.94C2 8.1 2 12 2 12s0 3.9.46 5.58a2.78 2.78 0 0 0 1.94 1.94C5.12 20 12 20 12 20s6.88 0 8.6-.48a2.78 2.78 0 0 0 1.94-1.94C22 15.9 22 12 22 12s0-3.9-.46-5.58z'/%3E%3Cpolygon points='10 15 16 12 10 9 10 15'/%3E%3C/svg%3E" type="image/svg+xml">
+</head>
+<body>
+    <div class="container">
+        <button id="themeToggle" class="theme-toggle-button">Toggle Night Mode</button>
+        <h1>FastVid: YouTube Video Downloader</h1>
+        <p class="tagline">Paste a YouTube video URL below to get started.</p>
+
+        <div class="input-section">
+            <input type="text" id="videoUrl" placeholder="e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ">
+            <button id="getInfoBtn">Get Video Info</button>
+        </div>
+
+        <div id="loading" class="loading-spinner" style="display: none;"></div>
+        <p id="statusMessage" class="status-message"></p>
+
+        <div id="progressContainer" class="progress-container" style="display: none;">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+
+        <div id="videoInfo" class="video-info-section" style="display: none;">
+            <img id="thumbnail" src="" alt="Video Thumbnail">
+            <div class="details">
+                <h2 id="videoTitle"></h2>
+                <p><strong>Channel:</strong> <span id="channelName"></span></p>
+                <p><strong>Duration:</strong> <span id="duration"></span></p>
+                <p><strong>Views:</strong> <span id="views"></span></p>
+            </div>
+            
+            <div class="thumbnail-download-option">
+                <button id="downloadHdThumbnailBtn">Download HD Thumbnail</button>
+            </div>
+
+            <div class="quality-selection-group">
+                <div class="quality-selection">
+                    <h3>Select Video Quality:</h3>
+                    <select id="videoQualitySelect" class="quality-dropdown" disabled>
+                        <option value="">-- Select Video --</option>
+                    </select>
+                </div>
+
+                <div class="quality-selection">
+                    <h3>Select Audio Quality:</h3>
+                    <select id="audioQualitySelect" class="quality-dropdown" disabled>
+                        <option value="">-- Select Audio --</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button id="downloadBtn" disabled>Download Selected Video/Audio</button>
+
+            <div class="timestamp-section">
+                <h3>Download Video Segment (Optional):</h3>
+                <p class="timestamp-info">
+                    Enter start and end times to download a specific part of the video. Use 00:00:00 (HH:MM:SS) or just seconds (e.g., 90 for 1:30).
+                </p>
+                <div class="timestamp-inputs">
+                    <input type="text" id="startTime" class="time-input" placeholder="Start (HH:MM:SS or SSS)">
+                    <input type="text" id="endTime" class="time-input" placeholder="End (HH:MM:SS or SSS)">
+                </div>
+                <div class="timestamp-format-toggles">
+                    <button class="format-toggle-btn" data-format="hhmmss">HH:MM:SS</button>
+                    <button class="format-toggle-btn" data-format="seconds">Seconds</button>
+                </div>
+                <button id="downloadSegmentBtn" disabled>Download Segment</button>
+            </div>
+
+            <p class="download-info">
+                Your file will download directly to your browser's default downloads folder.
+            </p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
