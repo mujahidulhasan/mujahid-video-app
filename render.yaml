@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: mujahidvid
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m gunicorn app:app
+    ports:
+      - 10000
+    plan: free
+    autoDeploy: true
+    disk:
+      name: downloads
+      mountPath: /opt/render/project/src/downloads
+      sizeGB: 1 # Adjust size as needed, e.g., 1 GB, 5 GB, etc.
+    apt:
+      packages:
+        - ffmpeg
