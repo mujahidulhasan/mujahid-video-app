@@ -5,14 +5,46 @@ import os
 import threading
 import uuid
 import re
-import requests # <--- ADDED THIS IMPORT
-import mimetypes # <--- ADDED THIS IMPORT
+import requests
+import mimetypes
+import base64 # <--- ADDED THIS IMPORT for base64 decoding
 
 app = Flask(__name__)
 CORS(app)
 
 DOWNLOAD_DIR = 'downloads'
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+# --- START: COOKIES SETUP FUNCTIONS ---
+def setup_cookies_file():
+    """
+    Decodes Base64 cookies from the YOUTUBE_COOKIES_BASE64 environment variable
+    and writes them to a cookies.txt file in the current directory.
+    This file is then used by yt-dlp for authentication.
+    """
+    cookies_base64 = os.getenv('YOUTUBE_COOKIES_BASE64')
+    if cookies_base64:
+        try:
+            decoded_cookies = base64.b64decode(cookies_base64).decode('utf-8')
+            # The cookies.txt file will be created in the same directory as this script
+            cookies_file_path = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+            with open(cookies_file_path, 'w') as f:
+                f.write(decoded_cookies)
+            print("INFO: cookies.txt file created successfully from environment variable.")
+        except Exception as e:
+            print(f"ERROR: Failed to decode or write cookies file. Details: {e}")
+            print("Please ensure YOUTUBE_COOKIES_BASE64 is a valid Base64 encoded string of your cookies.txt content.")
+    else:
+        print("WARNING: YOUTUBE_COOKIES_BASE64 environment variable not set. yt-dlp might face bot detection from YouTube.")
+
+# Call this function when the Flask app starts up to ensure cookies.txt is created
+with app.app_context():
+    setup_cookies_file()
+
+# Define the path to the cookies file once it's created
+COOKIES_FILE_PATH = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+# --- END: COOKIES SETUP FUNCTIONS ---
+
 
 @app.route('/')
 def home():
@@ -27,9 +59,6 @@ def get_video_info():
         return jsonify({"error": "No URL provided"}), 400
 
     try:
-        # --- START OF PROXY ADDITION FOR get_video_info ---
-        proxy_url = os.environ.get('PROXY_URL') 
-        
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
@@ -39,10 +68,16 @@ def get_video_info():
             'format_sort': ['res', 'ext'],
         }
         
+        # --- ADDED: Include cookies if the file exists ---
+        if os.path.exists(COOKIES_FILE_PATH):
+            ydl_opts['cookiefile'] = COOKIES_FILE_PATH
+            print(f"DEBUG: Using cookies file for get_video_info: {COOKIES_FILE_PATH}")
+        # --- END ADDED ---
+
+        proxy_url = os.environ.get('PROXY_URL') 
         if proxy_url:
             ydl_opts['proxy'] = proxy_url
-            print(f"DEBUG: Using proxy for get_video_info: {proxy_url}") # For debugging in Render logs
-        # --- END OF PROXY ADDITION FOR get_video_info ---
+            print(f"DEBUG: Using proxy for get_video_info: {proxy_url}") 
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=False)
@@ -147,7 +182,11 @@ def get_video_info():
 
     except yt_dlp.DownloadError as e:
         error_message = str(e)
-        if "age-restricted" in error_message:
+        # Check for bot detection specifically and return a helpful message
+        if "Sign in to confirm you’re not a bot" in error_message or "Unable to extract video data" in error_message or "Please use --cookies-from-browser" in error_message:
+            print(f"yt-dlp error: Bot detection suspected: {error_message}")
+            return jsonify({"error": "YouTube detected bot activity. This might be due to missing or expired cookies. Please ensure YOUTUBE_COOKIES_BASE64 environment variable is correctly set up on Render with fresh cookies."}), 500
+        elif "age-restricted" in error_message:
             return jsonify({"error": "This video is age-restricted and cannot be downloaded directly."}), 403
         elif "private" in error_message:
             return jsonify({"error": "This video is private and cannot be accessed."}), 403
@@ -157,7 +196,7 @@ def get_video_info():
             print(f"yt-dlp error: {error_message}")
             return jsonify({"error": f"Could not retrieve video information. Please check the URL or try another one. Details: {error_message}"}), 500
     except Exception as e:
-        print(f"General error: {e}")
+        print(f"General error in get_video_info: {e}")
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 @app.route('/download_video', methods=['POST'])
@@ -165,7 +204,7 @@ def download_video():
     data = request.get_json()
     video_url = data.get('url')
     format_id = data.get('format_id')
-    file_ext = data.get('ext') # This is the desired output extension (e.g., 'mp4', 'mp3')
+    file_ext = data.get('ext') 
     video_title = data.get('title', 'video')
 
     if not video_url or not format_id or not file_ext:
@@ -176,11 +215,10 @@ def download_video():
         sanitized_title = "download"
 
     unique_id = uuid.uuid4().hex[:8]
-    download_filename = f"{sanitized_title}_{unique_id}.{file_ext}" # Final filename based on requested ext
+    download_filename = f"{sanitized_title}_{unique_id}.{file_ext}"
     filepath = os.path.join(DOWNLOAD_DIR, download_filename)
 
     try:
-        # --- START OF PROXY ADDITION FOR download_video ---
         proxy_url = os.environ.get('PROXY_URL')
         
         ydl_opts = {
@@ -189,19 +227,20 @@ def download_video():
             'quiet': True,
             'cachedir': False,
             'noplaylist': True,
-            'postprocessors': [] # Initialize postprocessors list
+            'postprocessors': []
         }
         
+        # --- ADDED: Include cookies if the file exists ---
+        if os.path.exists(COOKIES_FILE_PATH):
+            ydl_opts['cookiefile'] = COOKIES_FILE_PATH
+            print(f"DEBUG: Using cookies file for download_video: {COOKIES_FILE_PATH}")
+        # --- END ADDED ---
+
         if proxy_url:
             ydl_opts['proxy'] = proxy_url
-            print(f"DEBUG: Using proxy for download_video: {proxy_url}") # For debugging in Render logs
-        # --- END OF PROXY ADDITION FOR download_video ---
+            print(f"DEBUG: Using proxy for download_video: {proxy_url}") 
 
-        # Handle video + audio merging for MP4 explicitly
         if file_ext == 'mp4':
-            # This format string tells yt-dlp to get the specified video format_id
-            # and then merge it with the best available audio (m4a preferred).
-            # If the format_id itself is for a combined stream, this still works.
             ydl_opts['format'] = f'{format_id}+bestaudio[ext=m4a]/best'
             ydl_opts['merge_output_format'] = 'mp4'
             ydl_opts['postprocessors'].append({
@@ -209,25 +248,21 @@ def download_video():
                 'preferedformat': 'mp4'
             })
         elif file_ext == 'mp3':
-            # For MP3 conversion, we need to extract audio
             ydl_opts['format'] = format_id if 'audio' in format_id.lower() else 'bestaudio/best'
             ydl_opts['postprocessors'].append({
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             })
-            ydl_opts['merge_output_format'] = 'mp3' # Ensure final merged output is mp3
-        else: # For other audio types like m4a, webm
+            ydl_opts['merge_output_format'] = 'mp3' 
+        else:
             ydl_opts['format'] = format_id
             ydl_opts['merge_output_format'] = file_ext
 
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # yt-dlp's extract_info with download=True will return the final file path
             info_dict = ydl.extract_info(video_url, download=True)
-            final_filepath = ydl.prepare_filename(info_dict) # Get the final name yt-dlp decided
+            final_filepath = ydl.prepare_filename(info_dict)
 
-        # Ensure the file is ready before sending
         if not os.path.exists(final_filepath):
             raise Exception(f"Downloaded file not found on server at {final_filepath}.")
 
@@ -247,11 +282,13 @@ def download_video():
 
     except yt_dlp.DownloadError as e:
         error_message = str(e)
-        # Attempt to clean up even if partially downloaded or if there was an error path
-        if os.path.exists(filepath): # Original outtmpl path
+        if os.path.exists(filepath):
             try: os.remove(filepath)
             except OSError: pass
         
+        if "Sign in to confirm you’re not a bot" in error_message or "Unable to extract video data" in error_message or "Please use --cookies-from-browser" in error_message:
+            print(f"yt-dlp download error: Bot detection suspected: {error_message}")
+            return jsonify({"error": "YouTube detected bot activity. This might be due to missing or expired cookies. Please ensure YOUTUBE_COOKIES_BASE64 environment variable is correctly set up on Render with fresh cookies."}), 500
         if "FFmpeg" in error_message:
             return jsonify({"error": "FFmpeg is required for this download. Please ensure it's installed and in your system PATH."}), 500
         if "age-restricted" in error_message:
@@ -292,13 +329,12 @@ def download_timestamped_video():
     filepath = os.path.join(DOWNLOAD_DIR, download_filename)
 
     try:
-        # --- START OF PROXY ADDITION FOR download_timestamped_video ---
         proxy_url = os.environ.get('PROXY_URL')
         
         ydl_opts = {
-            'format': 'bestvideo+bestaudio/best', # Use best available for segment
+            'format': 'bestvideo+bestaudio/best',
             'outtmpl': filepath,
-            'merge_output_format': 'mp4', # Force mp4 output for segments
+            'merge_output_format': 'mp4',
             'no_warnings': True,
             'quiet': True,
             'cachedir': False,
@@ -306,19 +342,23 @@ def download_timestamped_video():
             'postprocessors': [{
                 'key': 'FFmpegPostprocessor',
                 'args': [
-                    '-ss', str(start_time),  # Start time
-                    '-to', str(end_time)     # End time
+                    '-ss', str(start_time),
+                    '-to', str(end_time)
                 ]
             }],
         }
         
+        # --- ADDED: Include cookies if the file exists ---
+        if os.path.exists(COOKIES_FILE_PATH):
+            ydl_opts['cookiefile'] = COOKIES_FILE_PATH
+            print(f"DEBUG: Using cookies file for download_timestamped_video: {COOKIES_FILE_PATH}")
+        # --- END ADDED ---
+
         if proxy_url:
             ydl_opts['proxy'] = proxy_url
-            print(f"DEBUG: Using proxy for download_timestamped_video: {proxy_url}") # For debugging in Render logs
-        # --- END OF PROXY ADDITION FOR download_timestamped_video ---
+            print(f"DEBUG: Using proxy for download_timestamped_video: {proxy_url}") 
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # yt-dlp will handle the segment extraction and save to filepath
             ydl.download([video_url])
 
         if not os.path.exists(filepath):
@@ -344,6 +384,9 @@ def download_timestamped_video():
             try: os.remove(filepath)
             except OSError: pass
         
+        if "Sign in to confirm you’re not a bot" in error_message or "Unable to extract video data" in error_message or "Please use --cookies-from-browser" in error_message:
+            print(f"yt-dlp timestamped download error: Bot detection suspected: {error_message}")
+            return jsonify({"error": "YouTube detected bot activity. This might be due to missing or expired cookies. Please ensure YOUTUBE_COOKIES_BASE64 environment variable is correctly set up on Render with fresh cookies."}), 500
         if "FFmpeg" in error_message:
             return jsonify({"error": "FFmpeg is required for timestamped downloads. Please ensure it's installed and in your system PATH."}), 500
         return jsonify({"error": f"Failed to download video segment. Details: {error_message}"}), 500
@@ -364,15 +407,9 @@ def download_thumbnail():
     if not thumbnail_url:
         return jsonify({"error": "No thumbnail URL provided"}), 400
     
-    # --- START OF PROXY ADDITION FOR download_thumbnail ---
     proxy_url = os.environ.get('PROXY_URL') 
-    # The 'requests' library (used here) automatically uses HTTP_PROXY/HTTPS_PROXY environment variables.
-    # So, if you set PROXY_URL, and it points to an HTTP/HTTPS proxy, 'requests' will use it implicitly.
-    # We don't need explicit 'if proxy_url: ydl_opts['proxy'] = proxy_url' here like with yt-dlp.
-    # However, for consistency and clarity, we can add a debug print if needed.
     if proxy_url:
         print(f"DEBUG: Using proxy for download_thumbnail via requests: {proxy_url}")
-    # --- END OF PROXY ADDITION FOR download_thumbnail ---
 
     sanitized_title = re.sub(r'[^\w\s-]', '', video_title).strip().replace(' ', '_')
     if not sanitized_title:
@@ -387,6 +424,8 @@ def download_thumbnail():
     filepath = os.path.join(DOWNLOAD_DIR, download_filename)
 
     try:
+        # requests automatically uses HTTP_PROXY/HTTPS_PROXY environment variables
+        # so if PROXY_URL is set as such in Render, requests will use it implicitly.
         response = requests.get(thumbnail_url, stream=True)
         response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
 
@@ -430,4 +469,7 @@ def download_thumbnail():
 
 
 if __name__ == '__main__':
+    # When running locally, you might want to call setup_cookies_file() manually
+    # if you're not setting the env var in your local environment.
+    # For Render, the app_context call is sufficient.
     app.run(debug=True, port=5000)
