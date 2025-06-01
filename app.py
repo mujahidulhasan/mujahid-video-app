@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
 import yt_dlp
-import os
+import os # This import is already here, no change needed for this line
 import threading
 import uuid
 import re
+# import mimetypes # These imports were commented out in your provided code
+# import requests # These imports were commented out in your provided code
 
 app = Flask(__name__)
 CORS(app)
@@ -25,6 +27,9 @@ def get_video_info():
         return jsonify({"error": "No URL provided"}), 400
 
     try:
+        # --- START OF PROXY ADDITION FOR get_video_info ---
+        proxy_url = os.environ.get('PROXY_URL') 
+        
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
@@ -33,6 +38,11 @@ def get_video_info():
             'skip_download': True,
             'format_sort': ['res', 'ext'],
         }
+        
+        if proxy_url:
+            ydl_opts['proxy'] = proxy_url
+            print(f"DEBUG: Using proxy for get_video_info: {proxy_url}") # For debugging in Render logs
+        # --- END OF PROXY ADDITION FOR get_video_info ---
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=False)
@@ -170,6 +180,9 @@ def download_video():
     filepath = os.path.join(DOWNLOAD_DIR, download_filename)
 
     try:
+        # --- START OF PROXY ADDITION FOR download_video ---
+        proxy_url = os.environ.get('PROXY_URL')
+        
         ydl_opts = {
             'outtmpl': filepath,
             'no_warnings': True,
@@ -178,6 +191,11 @@ def download_video():
             'noplaylist': True,
             'postprocessors': [] # Initialize postprocessors list
         }
+        
+        if proxy_url:
+            ydl_opts['proxy'] = proxy_url
+            print(f"DEBUG: Using proxy for download_video: {proxy_url}") # For debugging in Render logs
+        # --- END OF PROXY ADDITION FOR download_video ---
 
         # Handle video + audio merging for MP4 explicitly
         if file_ext == 'mp4':
@@ -274,6 +292,9 @@ def download_timestamped_video():
     filepath = os.path.join(DOWNLOAD_DIR, download_filename)
 
     try:
+        # --- START OF PROXY ADDITION FOR download_timestamped_video ---
+        proxy_url = os.environ.get('PROXY_URL')
+        
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best', # Use best available for segment
             'outtmpl': filepath,
@@ -290,6 +311,11 @@ def download_timestamped_video():
                 ]
             }],
         }
+        
+        if proxy_url:
+            ydl_opts['proxy'] = proxy_url
+            print(f"DEBUG: Using proxy for download_timestamped_video: {proxy_url}") # For debugging in Render logs
+        # --- END OF PROXY ADDITION FOR download_timestamped_video ---
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # yt-dlp will handle the segment extraction and save to filepath
